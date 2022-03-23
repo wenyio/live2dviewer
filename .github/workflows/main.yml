@@ -1,14 +1,24 @@
 name: Build project
 
-on: [push, pull_request]
+on:
+  pull_request: {}
+  push: { branches: [main] }
+
+env:
+  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
 
 jobs:
-  buildForAllSupportedPlatforms:
-    name: Build for ${{ matrix.targetPlatform }}
+  buildForSomePlatforms:
+    name: Build for ${{ matrix.targetPlatform }} on version ${{ matrix.unityVersion }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        projectPath:
+          - live2dviewer
+        unityVersion:
+          - 2019.2.11f1
+          - 2019.3.0f1
         targetPlatform:
 #           - StandaloneOSX # Build a macOS standalone (Intel 64-bit).
 #           - StandaloneWindows # Build a Windows standalone.
@@ -17,22 +27,28 @@ jobs:
 #           - iOS # Build an iOS player.
 #           - Android # Build an Android .apk standalone app.
 #           - WebGL # WebGL.
+#           - WSAPlayer # Build an Windows Store Apps player.
+#           - PS4 # Build a PS4 Standalone.
+#           - XboxOne # Build a Xbox One Standalone.
+#           - tvOS # Build to Apple's tvOS platform.
+#           - Switch # Build a Nintendo Switch player.
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
           lfs: true
-      - uses: actions/cache@v2
+      - uses: actions/cache@v1.1.0
         with:
-          path: Library
-          key: Library-${{ matrix.targetPlatform }}
-          restore-keys: Library-
-      - uses: game-ci/unity-builder@v2
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          path: ${{ matrix.projectPath }}/Library
+          key: Library-${{ matrix.projectPath }}-${{ matrix.targetPlatform }}
+          restore-keys: |
+            Library-${{ matrix.projectPath }}-
+            Library-
+      - uses: webbertakken/unity-builder@1.5
         with:
+          projectPath: ${{ matrix.projectPath }}
+          unityVersion: ${{ matrix.unityVersion }}
           targetPlatform: ${{ matrix.targetPlatform }}
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v1
         with:
-          name: Build-${{ matrix.targetPlatform }}
-          path: build/${{ matrix.targetPlatform }}
+          name: Build
+          path: build
